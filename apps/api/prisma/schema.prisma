@@ -1,0 +1,663 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  GOVERNMENT_AUTHORITY
+  LOGISTICS_OPERATOR
+  FIELD_OFFICIAL
+  DRIVER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum AuditAction {
+  USER_CREATED
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  USER_LOGOUT
+  TOKEN_REFRESHED
+  PASSWORD_CHANGED
+  ACCOUNT_SUSPENDED
+
+  INCIDENT_CREATED
+  INCIDENT_UPDATED
+  FIELD_REPORT_SUBMITTED
+  DELIVERY_CREATED
+  DELIVERY_UPDATED
+  AGENT_RUN_STARTED
+  RECOMMENDATION_CREATED
+  RECOMMENDATION_APPROVED
+  RECOMMENDATION_REJECTED
+}
+
+enum CorridorStatus {
+  ACCESSIBLE
+  CAUTION
+  RESTRICTED
+  CLOSED
+  UNKNOWN
+}
+
+enum CommunityAccessStatus {
+  CONNECTED
+  AT_RISK
+  PARTIALLY_ISOLATED
+  ISOLATED
+  UNKNOWN
+}
+
+enum FacilityType {
+  HEALTH_CENTRE
+  HOSPITAL
+  PHARMACY
+  SCHOOL
+  RELIEF_CENTRE
+  WAREHOUSE
+  FUEL_STATION
+  POLICE_STATION
+  FIRE_STATION
+  OTHER
+}
+
+enum IncidentType {
+  LANDSLIDE
+  FLOOD
+  ROAD_DAMAGE
+  BRIDGE_DAMAGE
+  TREE_FALL
+  ACCIDENT
+  WEATHER_HAZARD
+  VISIBILITY_HAZARD
+  OTHER
+}
+
+enum IncidentSource {
+  FIELD_REPORT
+  WEATHER_API
+  SATELLITE
+  AGENT
+  SYSTEM
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  VERIFIED
+  MONITORING
+  MITIGATING
+  RESOLVED
+  DISMISSED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DeliveryPriority {
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum DeliveryStatus {
+  PLANNED
+  APPROVAL_PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELAYED
+  REROUTED
+  DELIVERED
+  CANCELLED
+}
+
+enum RoutePlanType {
+  PLANNED
+  ALTERNATIVE
+  ACTIVE
+  COMPLETED
+}
+
+enum AgentType {
+  SENSE
+  IMPACT
+  ROUTE
+  COMMAND
+}
+
+enum AgentRunStatus {
+  QUEUED
+  RUNNING
+  AWAITING_APPROVAL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ToolCallStatus {
+  STARTED
+  SUCCEEDED
+  FAILED
+}
+
+enum RecommendationType {
+  ROAD_RESTRICTION
+  ROUTE_CHANGE
+  PREPOSITION_SUPPLIES
+  COMMUNITY_ALERT
+  DISPATCH_SUPPORT
+  DELIVERY_HOLD
+  FIELD_VERIFICATION
+  OTHER
+}
+
+enum RecommendationPriority {
+  INFORMATIONAL
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RecommendationStatus {
+  PROPOSED
+  AWAITING_APPROVAL
+  APPROVED
+  REJECTED
+  EXECUTED
+  EXPIRED
+  CANCELLED
+}
+
+enum ApprovalDecisionType {
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  fullName     String
+  email        String     @unique
+  passwordHash String
+  phone        String?
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  organisation String?
+  district     String?
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  sessions                Session[]
+  auditLogs               AuditLog[]
+  incidentsReported       Incident[]            @relation("IncidentReporter")
+  fieldReports            FieldReport[]         @relation("FieldReportReporter")
+  deliveriesCreated       Delivery[]            @relation("DeliveryCreator")
+  deliveriesAssigned      Delivery[]            @relation("DeliveryDriver")
+  recommendationsReviewed AgentRecommendation[] @relation("RecommendationReviewer")
+  approvalDecisions       ApprovalDecision[]    @relation("ApprovalActor")
+
+  @@index([role])
+  @@index([status])
+  @@index([district])
+  @@map("users")
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  refreshTokenHash String    @unique
+  ipAddress        String?
+  userAgent        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id         BigInt      @id @default(autoincrement())
+  actorId    String?     @db.Uuid
+  action     AuditAction
+  entityType String?
+  entityId   String?
+  success    Boolean     @default(true)
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model RoadCorridor {
+  id              String         @id @default(uuid()) @db.Uuid
+  code            String         @unique
+  name            String
+  district        String
+  state           String         @default("Meghalaya")
+  startLocation   String
+  endLocation     String
+  totalDistanceKm Decimal        @db.Decimal(8, 2)
+  status          CorridorStatus @default(UNKNOWN)
+  riskScore       Float          @default(0)
+  lastAssessedAt  DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  segments        RoadSegment[]
+  communityLinks  CorridorCommunity[]
+  facilities      CriticalFacility[]
+  incidents       Incident[]
+  fieldReports    FieldReport[]
+  deliveries      Delivery[]
+  routePlans      RoutePlan[]
+  recommendations AgentRecommendation[]
+
+  @@index([district])
+  @@index([status])
+  @@index([riskScore])
+  @@map("road_corridors")
+}
+
+model RoadSegment {
+  id               String         @id @default(uuid()) @db.Uuid
+  corridorId       String         @db.Uuid
+  code             String
+  name             String
+  startPoint       String
+  endPoint         String
+  startLatitude    Decimal        @db.Decimal(9, 6)
+  startLongitude   Decimal        @db.Decimal(9, 6)
+  endLatitude      Decimal        @db.Decimal(9, 6)
+  endLongitude     Decimal        @db.Decimal(9, 6)
+  surfaceType      String?
+  status           CorridorStatus @default(UNKNOWN)
+  riskScore        Float          @default(0)
+  lastInspectionAt DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  corridor        RoadCorridor          @relation(fields: [corridorId], references: [id], onDelete: Cascade)
+  incidents       Incident[]
+  fieldReports    FieldReport[]
+  recommendations AgentRecommendation[]
+
+  @@unique([corridorId, code])
+  @@index([corridorId])
+  @@index([status])
+  @@index([riskScore])
+  @@map("road_segments")
+}
+
+model Community {
+  id                 String                @id @default(uuid()) @db.Uuid
+  code               String                @unique
+  name               String
+  district           String
+  state              String                @default("Meghalaya")
+  latitude           Decimal               @db.Decimal(9, 6)
+  longitude          Decimal               @db.Decimal(9, 6)
+  population         Int?
+  vulnerabilityScore Float                 @default(0)
+  accessStatus       CommunityAccessStatus @default(UNKNOWN)
+  lastAssessedAt     DateTime?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  corridorLinks   CorridorCommunity[]
+  facilities      CriticalFacility[]
+  incidentImpacts IncidentCommunityImpact[]
+  deliveries      Delivery[]
+
+  @@index([district])
+  @@index([accessStatus])
+  @@index([vulnerabilityScore])
+  @@map("communities")
+}
+
+model CorridorCommunity {
+  corridorId     String   @db.Uuid
+  communityId    String   @db.Uuid
+  isPrimary      Boolean  @default(false)
+  accessPriority Int      @default(1)
+  distanceKm     Decimal? @db.Decimal(8, 2)
+  createdAt      DateTime @default(now())
+
+  corridor  RoadCorridor @relation(fields: [corridorId], references: [id], onDelete: Cascade)
+  community Community    @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@id([corridorId, communityId])
+  @@index([communityId])
+  @@index([isPrimary])
+  @@map("corridor_communities")
+}
+
+model CriticalFacility {
+  id           String                @id @default(uuid()) @db.Uuid
+  code         String                @unique
+  communityId  String                @db.Uuid
+  corridorId   String?               @db.Uuid
+  name         String
+  type         FacilityType
+  latitude     Decimal               @db.Decimal(9, 6)
+  longitude    Decimal               @db.Decimal(9, 6)
+  contactPhone String?
+  capacity     Int?
+  operational  Boolean               @default(true)
+  accessStatus CommunityAccessStatus @default(UNKNOWN)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  community  Community     @relation(fields: [communityId], references: [id], onDelete: Restrict)
+  corridor   RoadCorridor? @relation(fields: [corridorId], references: [id], onDelete: SetNull)
+  deliveries Delivery[]
+
+  @@index([communityId])
+  @@index([corridorId])
+  @@index([type])
+  @@index([operational])
+  @@map("critical_facilities")
+}
+
+model Incident {
+  id              String         @id @default(uuid()) @db.Uuid
+  referenceNumber String         @unique
+  corridorId      String?        @db.Uuid
+  roadSegmentId   String?        @db.Uuid
+  reportedById    String?        @db.Uuid
+  type            IncidentType
+  source          IncidentSource
+  severity        Severity
+  status          IncidentStatus @default(OPEN)
+  title           String
+  description     String
+  latitude        Decimal        @db.Decimal(9, 6)
+  longitude       Decimal        @db.Decimal(9, 6)
+  riskScore       Float          @default(0)
+  detectedAt      DateTime       @default(now())
+  verifiedAt      DateTime?
+  resolvedAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  corridor         RoadCorridor?             @relation(fields: [corridorId], references: [id], onDelete: SetNull)
+  roadSegment      RoadSegment?              @relation(fields: [roadSegmentId], references: [id], onDelete: SetNull)
+  reportedBy       User?                     @relation("IncidentReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+  communityImpacts IncidentCommunityImpact[]
+  fieldReports     FieldReport[]
+  recommendations  AgentRecommendation[]
+
+  @@index([corridorId])
+  @@index([roadSegmentId])
+  @@index([reportedById])
+  @@index([type])
+  @@index([severity])
+  @@index([status])
+  @@index([detectedAt])
+  @@map("incidents")
+}
+
+model IncidentCommunityImpact {
+  incidentId                  String   @db.Uuid
+  communityId                 String   @db.Uuid
+  impactLevel                 Severity
+  estimatedIsolationHours     Int?
+  estimatedPopulationAffected Int?
+  notes                       String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  incident  Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@id([incidentId, communityId])
+  @@index([communityId])
+  @@index([impactLevel])
+  @@map("incident_community_impacts")
+}
+
+model FieldReport {
+  id                 String             @id @default(uuid()) @db.Uuid
+  reportedById       String             @db.Uuid
+  corridorId         String?            @db.Uuid
+  roadSegmentId      String?            @db.Uuid
+  incidentId         String?            @db.Uuid
+  title              String
+  description        String
+  latitude           Decimal            @db.Decimal(9, 6)
+  longitude          Decimal            @db.Decimal(9, 6)
+  mediaUrls          String[]           @default([])
+  verificationStatus VerificationStatus @default(PENDING)
+  capturedAt         DateTime           @default(now())
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  reportedBy  User          @relation("FieldReportReporter", fields: [reportedById], references: [id], onDelete: Restrict)
+  corridor    RoadCorridor? @relation(fields: [corridorId], references: [id], onDelete: SetNull)
+  roadSegment RoadSegment?  @relation(fields: [roadSegmentId], references: [id], onDelete: SetNull)
+  incident    Incident?     @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+
+  @@index([reportedById])
+  @@index([corridorId])
+  @@index([roadSegmentId])
+  @@index([incidentId])
+  @@index([verificationStatus])
+  @@index([capturedAt])
+  @@map("field_reports")
+}
+
+model Delivery {
+  id                     String           @id @default(uuid()) @db.Uuid
+  referenceNumber        String           @unique
+  createdById            String           @db.Uuid
+  assignedDriverId       String?          @db.Uuid
+  corridorId             String?          @db.Uuid
+  destinationCommunityId String           @db.Uuid
+  destinationFacilityId  String?          @db.Uuid
+  cargoType              String
+  cargoDescription       String?
+  quantity               Decimal?         @db.Decimal(10, 2)
+  unit                   String?
+  priority               DeliveryPriority @default(NORMAL)
+  status                 DeliveryStatus   @default(PLANNED)
+  originName             String
+  originLatitude         Decimal?         @db.Decimal(9, 6)
+  originLongitude        Decimal?         @db.Decimal(9, 6)
+  currentLatitude        Decimal?         @db.Decimal(9, 6)
+  currentLongitude       Decimal?         @db.Decimal(9, 6)
+  plannedDepartureAt     DateTime?
+  estimatedArrivalAt     DateTime?
+  actualDepartureAt      DateTime?
+  actualArrivalAt        DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  createdBy            User                  @relation("DeliveryCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignedDriver       User?                 @relation("DeliveryDriver", fields: [assignedDriverId], references: [id], onDelete: SetNull)
+  corridor             RoadCorridor?         @relation(fields: [corridorId], references: [id], onDelete: SetNull)
+  destinationCommunity Community             @relation(fields: [destinationCommunityId], references: [id], onDelete: Restrict)
+  destinationFacility  CriticalFacility?     @relation(fields: [destinationFacilityId], references: [id], onDelete: SetNull)
+  routePlans           RoutePlan[]
+  recommendations      AgentRecommendation[]
+
+  @@index([createdById])
+  @@index([assignedDriverId])
+  @@index([corridorId])
+  @@index([destinationCommunityId])
+  @@index([destinationFacilityId])
+  @@index([priority])
+  @@index([status])
+  @@index([plannedDepartureAt])
+  @@map("deliveries")
+}
+
+model RoutePlan {
+  id               String        @id @default(uuid()) @db.Uuid
+  deliveryId       String        @db.Uuid
+  corridorId       String?       @db.Uuid
+  agentRunId       String?       @db.Uuid
+  name             String
+  type             RoutePlanType @default(PLANNED)
+  distanceKm       Decimal       @db.Decimal(8, 2)
+  estimatedMinutes Int
+  riskScore        Float         @default(0)
+  geometry         Json?
+  instructions     Json?
+  isRecommended    Boolean       @default(false)
+  isApproved       Boolean       @default(false)
+  approvedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  delivery Delivery      @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  corridor RoadCorridor? @relation(fields: [corridorId], references: [id], onDelete: SetNull)
+  agentRun AgentRun?     @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+
+  @@index([deliveryId])
+  @@index([corridorId])
+  @@index([agentRunId])
+  @@index([type])
+  @@index([isRecommended])
+  @@index([isApproved])
+  @@map("route_plans")
+}
+
+model AgentRun {
+  id             String         @id @default(uuid()) @db.Uuid
+  agentType      AgentType
+  status         AgentRunStatus @default(QUEUED)
+  trigger        String
+  inputSnapshot  Json
+  outputSnapshot Json?
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  toolCalls       AgentToolCall[]
+  routePlans      RoutePlan[]
+  recommendations AgentRecommendation[]
+
+  @@index([agentType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("agent_runs")
+}
+
+model AgentToolCall {
+  id           String         @id @default(uuid()) @db.Uuid
+  agentRunId   String         @db.Uuid
+  toolName     String
+  status       ToolCallStatus @default(STARTED)
+  request      Json
+  response     Json?
+  errorMessage String?
+  startedAt    DateTime       @default(now())
+  completedAt  DateTime?
+  createdAt    DateTime       @default(now())
+
+  agentRun AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  @@index([agentRunId])
+  @@index([toolName])
+  @@index([status])
+  @@index([startedAt])
+  @@map("agent_tool_calls")
+}
+
+model AgentRecommendation {
+  id               String                 @id @default(uuid()) @db.Uuid
+  agentRunId       String?                @db.Uuid
+  corridorId       String?                @db.Uuid
+  roadSegmentId    String?                @db.Uuid
+  incidentId       String?                @db.Uuid
+  deliveryId       String?                @db.Uuid
+  reviewedById     String?                @db.Uuid
+  agentType        AgentType
+  type             RecommendationType
+  priority         RecommendationPriority
+  status           RecommendationStatus   @default(PROPOSED)
+  title            String
+  reasoning        String
+  confidence       Float
+  evidence         Json?
+  proposedAction   Json?
+  requiresApproval Boolean                @default(true)
+  reviewedAt       DateTime?
+  expiresAt        DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  agentRun    AgentRun?          @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  corridor    RoadCorridor?      @relation(fields: [corridorId], references: [id], onDelete: SetNull)
+  roadSegment RoadSegment?       @relation(fields: [roadSegmentId], references: [id], onDelete: SetNull)
+  incident    Incident?          @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  delivery    Delivery?          @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  reviewedBy  User?              @relation("RecommendationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  decisions   ApprovalDecision[]
+
+  @@index([agentRunId])
+  @@index([corridorId])
+  @@index([roadSegmentId])
+  @@index([incidentId])
+  @@index([deliveryId])
+  @@index([reviewedById])
+  @@index([agentType])
+  @@index([priority])
+  @@index([status])
+  @@index([createdAt])
+  @@map("agent_recommendations")
+}
+
+model ApprovalDecision {
+  id               String               @id @default(uuid()) @db.Uuid
+  recommendationId String               @db.Uuid
+  actorId          String               @db.Uuid
+  decision         ApprovalDecisionType
+  comment          String?
+  decidedAt        DateTime             @default(now())
+  createdAt        DateTime             @default(now())
+
+  recommendation AgentRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  actor          User                @relation("ApprovalActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([recommendationId])
+  @@index([actorId])
+  @@index([decision])
+  @@index([decidedAt])
+  @@map("approval_decisions")
+}
