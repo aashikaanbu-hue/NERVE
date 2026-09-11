@@ -25,6 +25,7 @@ import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AccessibilityMapPage } from "./pages/AccessibilityMapPage";
 import { LoginPage } from "./pages/LoginPage";
+import { RiskIntelligencePage } from "./pages/RiskIntelligencePage";
 
 type Health = {
   status: string;
@@ -822,6 +823,10 @@ export function App() {
       <Route
         path="/dashboard/accessibility"
         element={<AccessibilityMapPage />}
+      />
+      <Route
+        path="/dashboard/risk-intelligence"
+        element={<RiskIntelligencePage />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

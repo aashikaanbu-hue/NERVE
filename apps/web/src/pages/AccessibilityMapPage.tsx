@@ -187,10 +187,10 @@ export function AccessibilityMapPage() {
             Accessibility map
           </Link>
 
-          <button type="button">
+          <Link to="/dashboard/risk-intelligence">
             <AlertTriangle />
             Risk intelligence
-          </button>
+          </Link>
 
           <button type="button">
             <Route />
