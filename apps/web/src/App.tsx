@@ -1,4 +1,4 @@
-import {
+﻿import {
   AlertTriangle,
   ArrowRight,
   Bot,
@@ -26,6 +26,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { AccessibilityMapPage } from "./pages/AccessibilityMapPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RiskIntelligencePage } from "./pages/RiskIntelligencePage";
+import { RoutePlanningPage } from "./pages/RoutePlanningPage";
 
 type Health = {
   status: string;
@@ -828,6 +829,10 @@ export function App() {
         path="/dashboard/risk-intelligence"
         element={<RiskIntelligencePage />}
       />
+      <Route
+  path="/dashboard/route-planning"
+  element={<RoutePlanningPage />}
+/>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

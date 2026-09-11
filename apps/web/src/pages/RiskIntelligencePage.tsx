@@ -327,10 +327,10 @@ export function RiskIntelligencePage() {
             Risk intelligence
           </Link>
 
-          <button type="button">
-            <Route />
-            Route planning
-          </button>
+          <Link to="/dashboard/route-planning">
+  <Route />
+  Route planning
+</Link>
 
           <button type="button">
             <Truck />
