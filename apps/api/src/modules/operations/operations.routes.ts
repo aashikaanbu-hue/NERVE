@@ -1,5 +1,7 @@
 import {
   AgentType,
+  ApprovalDecisionType,
+  AuditAction,
   CommunityAccessStatus,
   CorridorStatus,
   DeliveryPriority,
@@ -8,6 +10,7 @@ import {
   RecommendationPriority,
   RecommendationStatus,
   Severity,
+  UserRole,
 } from "@prisma/client";
 
 import {
@@ -23,7 +26,9 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma.js";
 
 import {
+  type AuthenticatedRequest,
   requireAuthentication,
+  requireRoles,
 } from "../../middleware/auth.js";
 
 type AsyncRouteHandler = (
@@ -181,7 +186,43 @@ const recommendationQuerySchema =
         .max(100)
         .default(25),
   });
+const recommendationDecisionParamsSchema =
+  z.object({
+    recommendationId:
+      z.string().uuid(),
+  });
 
+const recommendationDecisionSchema =
+  z.object({
+    decision:
+      z.nativeEnum(
+        ApprovalDecisionType,
+      ),
+
+    comment:
+      z.string()
+        .trim()
+        .min(3)
+        .max(500)
+        .optional(),
+  })
+    .superRefine(
+      (value, context) => {
+        if (
+          value.decision !==
+            ApprovalDecisionType.APPROVED &&
+          !value.comment
+        ) {
+          context.addIssue({
+            code:
+              z.ZodIssueCode.custom,
+            path: ["comment"],
+            message:
+              "A comment is required when rejecting or requesting changes.",
+          });
+        }
+      },
+    );
 export const operationsRouter =
   Router();
 
@@ -1311,7 +1352,234 @@ operationsRouter.get(
     },
   ),
 );
+/*
+ * POST /api/v1/operations/recommendations/:recommendationId/decision
+ *
+ * Records a named human decision and updates the recommendation.
+ * Only government authorities can approve critical operational action.
+ */
+operationsRouter.post(
+  "/recommendations/:recommendationId/decision",
 
+  requireRoles(
+    UserRole.GOVERNMENT_AUTHORITY,
+  ),
+
+  asyncHandler(
+    async (
+      request,
+      response,
+    ) => {
+      const parsedParams =
+        recommendationDecisionParamsSchema.safeParse(
+          request.params,
+        );
+
+      const parsedBody =
+        recommendationDecisionSchema.safeParse(
+          request.body,
+        );
+
+      if (!parsedParams.success) {
+        sendValidationError(
+          response,
+          parsedParams.error,
+        );
+
+        return;
+      }
+
+      if (!parsedBody.success) {
+        sendValidationError(
+          response,
+          parsedBody.error,
+        );
+
+        return;
+      }
+
+      const authenticatedRequest =
+        request as AuthenticatedRequest;
+
+      const {
+        recommendationId,
+      } = parsedParams.data;
+
+      const {
+        decision,
+        comment,
+      } = parsedBody.data;
+
+      const recommendation =
+        await prisma.agentRecommendation.findUnique({
+          where: {
+            id: recommendationId,
+          },
+        });
+
+      if (!recommendation) {
+        response.status(404).json({
+          error: {
+            code:
+              "RECOMMENDATION_NOT_FOUND",
+
+            message:
+              "The requested recommendation was not found.",
+          },
+        });
+
+        return;
+      }
+
+      if (
+        recommendation.status !==
+          RecommendationStatus.PROPOSED &&
+        recommendation.status !==
+          RecommendationStatus.AWAITING_APPROVAL
+      ) {
+        response.status(409).json({
+          error: {
+            code:
+              "RECOMMENDATION_ALREADY_REVIEWED",
+
+            message:
+              "This recommendation already has a final decision.",
+          },
+        });
+
+        return;
+      }
+
+      const nextStatus =
+        decision ===
+        ApprovalDecisionType.APPROVED
+          ? RecommendationStatus.APPROVED
+          : decision ===
+              ApprovalDecisionType.REJECTED
+            ? RecommendationStatus.REJECTED
+            : RecommendationStatus.PROPOSED;
+
+      const decidedAt =
+        new Date();
+
+      const updatedRecommendation =
+        await prisma.$transaction(
+          async (transaction) => {
+            await transaction.approvalDecision.create({
+              data: {
+                recommendationId,
+
+                actorId:
+                  authenticatedRequest.auth.userId,
+
+                decision,
+                comment,
+                decidedAt,
+              },
+            });
+
+            const updated =
+              await transaction.agentRecommendation.update({
+                where: {
+                  id: recommendationId,
+                },
+
+                data: {
+                  status: nextStatus,
+
+                  reviewedById:
+                    authenticatedRequest.auth.userId,
+
+                  reviewedAt:
+                    decidedAt,
+                },
+
+                include: {
+                  agentRun: true,
+                  corridor: true,
+                  roadSegment: true,
+                  incident: true,
+                  delivery: true,
+
+                  reviewedBy: {
+                    select: {
+                      id: true,
+                      fullName: true,
+                      role: true,
+                    },
+                  },
+
+                  decisions: {
+                    include: {
+                      actor: {
+                        select: {
+                          id: true,
+                          fullName: true,
+                          role: true,
+                        },
+                      },
+                    },
+
+                    orderBy: {
+                      decidedAt:
+                        "desc",
+                    },
+                  },
+                },
+              });
+
+            await transaction.auditLog.create({
+              data: {
+                actorId:
+                  authenticatedRequest.auth.userId,
+
+                action:
+                  decision ===
+                  ApprovalDecisionType.APPROVED
+                    ? AuditAction.RECOMMENDATION_APPROVED
+                    : AuditAction.RECOMMENDATION_REJECTED,
+
+                entityType:
+                  "AgentRecommendation",
+
+                entityId:
+                  recommendationId,
+
+                ipAddress:
+                  request.ip ?? null,
+
+                userAgent:
+                  request.get(
+                    "user-agent",
+                  ) ?? null,
+
+                metadata: {
+                  decision,
+
+                  comment:
+                    comment ?? null,
+
+                  previousStatus:
+                    recommendation.status,
+
+                  nextStatus,
+                },
+              },
+            });
+
+            return updated;
+          },
+        );
+
+      response.status(200).json({
+        data: {
+          recommendation:
+            updatedRecommendation,
+        },
+      });
+    },
+  ),
+);
 /*
  * GET /api/v1/operations/agent-runs
  */

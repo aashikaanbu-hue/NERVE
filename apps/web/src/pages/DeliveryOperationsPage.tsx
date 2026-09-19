@@ -440,7 +440,10 @@ export function DeliveryOperationsPage() {
 
             Delivery operations
           </Link>
-
+<Link to="/dashboard/approvals">
+  <ShieldCheck />
+  Approval centre
+</Link>
           <Link to="/dashboard/agents">
   <Bot />
   Agent activity

@@ -649,7 +649,10 @@ export function AgentActivityPage() {
             <Truck />
             Delivery operations
           </Link>
-
+            <Link to="/dashboard/approvals">
+  <ShieldCheck />
+  Approval centre
+</Link>
           <Link
             to="/dashboard/agents"
             className="active"

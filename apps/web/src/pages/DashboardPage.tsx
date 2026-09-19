@@ -247,7 +247,10 @@ export function DashboardPage() {
   <Truck />
   Delivery operations
 </Link>
-
+<Link to="/dashboard/approvals">
+  <ShieldCheck />
+  Approval centre
+</Link>
           <Link to="/dashboard/agents">
   <Bot />
   Agent activity
@@ -542,10 +545,13 @@ export function DashboardPage() {
                 </article>
               )}
 
-              <button type="button" className="review-queue">
-                Review decision queue ({recommendations.length})
-                <ChevronRight />
-              </button>
+              <Link
+  to="/dashboard/approvals"
+  className="review-queue"
+>
+  Review decision queue ({recommendations.length})
+  <ChevronRight />
+</Link>
             </section>
           </div>
 

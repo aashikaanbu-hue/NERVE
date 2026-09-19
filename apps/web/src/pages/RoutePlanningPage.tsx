@@ -491,6 +491,10 @@ export function RoutePlanningPage() {
   <Truck />
   Delivery operations
 </Link>
+<Link to="/dashboard/approvals">
+  <ShieldCheck />
+  Approval centre
+</Link>
 <Link to="/dashboard/agents">
   <Bot />
   Agent activity

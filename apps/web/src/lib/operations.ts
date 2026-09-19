@@ -220,6 +220,94 @@ export type AgentRun = {
   toolCalls: AgentToolCall[];
   recommendations: AgentRunRecommendation[];
 };
+export type ApprovalDecision = {
+  id: string;
+  decision: string;
+  comment: string | null;
+  decidedAt: string;
+  createdAt: string;
+
+  actor: {
+    id: string;
+    fullName: string;
+    role: string;
+  };
+};
+
+export type ApprovalRecommendation = {
+  id: string;
+  agentType: string;
+  type: string;
+  priority: string;
+  status: string;
+  title: string;
+  reasoning: string;
+  confidence: number;
+
+  evidence:
+    | Record<string, unknown>
+    | null;
+
+  proposedAction:
+    | Record<string, unknown>
+    | null;
+
+  requiresApproval: boolean;
+  reviewedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+
+  agentRun: {
+    id: string;
+    agentType: string;
+    status: string;
+    trigger: string;
+    startedAt: string | null;
+    completedAt: string | null;
+  } | null;
+
+  corridor: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    riskScore: number;
+  } | null;
+
+  roadSegment: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    riskScore: number;
+  } | null;
+
+  incident: {
+    id: string;
+    referenceNumber: string;
+    title: string;
+    severity: string;
+    status: string;
+  } | null;
+
+  delivery: {
+    id: string;
+    referenceNumber: string;
+    cargoType: string;
+    priority: string;
+    status: string;
+  } | null;
+
+  reviewedBy: {
+    id: string;
+    fullName: string;
+    role: string;
+  } | null;
+
+  decisions:
+    ApprovalDecision[];
+};
 export type OperationsOverview = {
   generatedAt: string;
   metrics: OperationsMetrics;
@@ -237,6 +325,21 @@ type AgentRunsResponse = {
   data: {
     total: number;
     runs: AgentRun[];
+  };
+};
+type RecommendationsResponse = {
+  data: {
+    total: number;
+
+    recommendations:
+      ApprovalRecommendation[];
+  };
+};
+
+type RecommendationDecisionResponse = {
+  data: {
+    recommendation:
+      ApprovalRecommendation;
   };
 };
 type ApiErrorResponse = {
@@ -264,6 +367,7 @@ async function getErrorMessage(
 
 async function requestWithAuthentication(
   path: string,
+  init: RequestInit = {},
 ): Promise<Response> {
   let accessToken =
     getAccessToken();
@@ -272,12 +376,26 @@ async function requestWithAuthentication(
     token: string | null,
   ): Headers {
     const headers =
-      new Headers();
+      new Headers(
+        init.headers,
+      );
 
     headers.set(
       "Accept",
       "application/json",
     );
+
+    if (
+      init.body &&
+      !headers.has(
+        "Content-Type",
+      )
+    ) {
+      headers.set(
+        "Content-Type",
+        "application/json",
+      );
+    }
 
     if (token) {
       headers.set(
@@ -289,28 +407,18 @@ async function requestWithAuthentication(
     return headers;
   }
 
-  let response = await fetch(
-    `${API_URL}${path}`,
-    {
-      method: "GET",
-      credentials: "include",
-
-      headers:
-        createHeaders(
-          accessToken,
-        ),
-    },
-  );
-
-  if (response.status === 401) {
-    accessToken =
-      await refreshAccessToken();
-
-    response = await fetch(
+  let response =
+    await fetch(
       `${API_URL}${path}`,
       {
-        method: "GET",
-        credentials: "include",
+        ...init,
+
+        method:
+          init.method ??
+          "GET",
+
+        credentials:
+          "include",
 
         headers:
           createHeaders(
@@ -318,6 +426,32 @@ async function requestWithAuthentication(
           ),
       },
     );
+
+  if (
+    response.status === 401
+  ) {
+    accessToken =
+      await refreshAccessToken();
+
+    response =
+      await fetch(
+        `${API_URL}${path}`,
+        {
+          ...init,
+
+          method:
+            init.method ??
+            "GET",
+
+          credentials:
+            "include",
+
+          headers:
+            createHeaders(
+              accessToken,
+            ),
+        },
+      );
   }
 
   return response;
@@ -374,4 +508,92 @@ export async function getAgentRuns(): Promise<AgentRun[]> {
   }
 
   return result.data.runs;
+}
+export async function getRecommendations():
+  Promise<ApprovalRecommendation[]> {
+  const response =
+    await requestWithAuthentication(
+      "/operations/recommendations?limit=100",
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+      ),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      RecommendationsResponse;
+
+  if (
+    !result.data ||
+    !Array.isArray(
+      result.data.recommendations,
+    )
+  ) {
+    throw new Error(
+      "The approval queue API returned an invalid response.",
+    );
+  }
+
+  return result.data.recommendations;
+}
+
+export async function reviewRecommendation(
+  recommendationId: string,
+
+  decision:
+    | "APPROVED"
+    | "REJECTED"
+    | "CHANGES_REQUESTED",
+
+  comment?: string,
+): Promise<ApprovalRecommendation> {
+  const response =
+    await requestWithAuthentication(
+      `/operations/recommendations/${recommendationId}/decision`,
+
+      {
+        method:
+          "POST",
+
+        body:
+          JSON.stringify({
+            decision,
+
+            ...(comment?.trim()
+              ? {
+                  comment:
+                    comment.trim(),
+                }
+              : {}),
+          }),
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+      ),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      RecommendationDecisionResponse;
+
+  if (
+    !result.data
+      ?.recommendation
+  ) {
+    throw new Error(
+      "The approval decision API returned an invalid response.",
+    );
+  }
+
+  return result.data.recommendation;
 }

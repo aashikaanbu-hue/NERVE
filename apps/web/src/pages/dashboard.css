@@ -277,21 +277,6 @@
   box-shadow: 0 10px 24px rgba(5, 77, 91, 0.16);
 }
 
-.dashboard-user > span {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.dashboard-user > span b {
-  color: #0b2948;
-  font-size: 0.82rem;
-}
-
-.dashboard-user > span small {
-  color: #74899a;
-  font-size: 0.68rem;
-}
 
 .dashboard-content {
   padding: 30px clamp(22px, 3.2vw, 52px) 54px;
@@ -885,6 +870,7 @@
   font-size: 0.66rem;
   line-height: 1.45;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
 }
 
