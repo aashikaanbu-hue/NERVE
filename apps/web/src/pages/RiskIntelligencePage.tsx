@@ -332,10 +332,10 @@ export function RiskIntelligencePage() {
   Route planning
 </Link>
 
-          <button type="button">
-            <Truck />
-            Delivery operations
-          </button>
+          <Link to="/dashboard/deliveries">
+  <Truck />
+  Delivery operations
+</Link>
 
           <button type="button">
             <Bot />
