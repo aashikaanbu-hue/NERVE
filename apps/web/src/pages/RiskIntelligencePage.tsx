@@ -337,10 +337,10 @@ export function RiskIntelligencePage() {
   Delivery operations
 </Link>
 
-          <button type="button">
-            <Bot />
-            Agent activity
-          </button>
+          <Link to="/dashboard/agents">
+  <Bot />
+  Agent activity
+</Link>
         </nav>
 
         <div className="sidebar-agent">

@@ -183,7 +183,43 @@ export type OverviewRecommendation = {
     status: string;
   } | null;
 };
+export type AgentToolCall = {
+  id: string;
+  agentRunId: string;
+  toolName: string;
+  status: string;
+  request: Record<string, unknown>;
+  response: Record<string, unknown> | null;
+  errorMessage: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  createdAt: string;
+};
 
+export type AgentRunRecommendation = {
+  id: string;
+  type: string;
+  priority: string;
+  status: string;
+  title: string;
+  confidence: number;
+};
+
+export type AgentRun = {
+  id: string;
+  agentType: string;
+  status: string;
+  trigger: string;
+  inputSnapshot: Record<string, unknown>;
+  outputSnapshot: Record<string, unknown> | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  toolCalls: AgentToolCall[];
+  recommendations: AgentRunRecommendation[];
+};
 export type OperationsOverview = {
   generatedAt: string;
   metrics: OperationsMetrics;
@@ -197,7 +233,12 @@ export type OperationsOverview = {
 type OperationsOverviewResponse = {
   data: OperationsOverview;
 };
-
+type AgentRunsResponse = {
+  data: {
+    total: number;
+    runs: AgentRun[];
+  };
+};
 type ApiErrorResponse = {
   error?: {
     code?: string;
@@ -308,4 +349,29 @@ export async function getOperationsOverview():
   }
 
   return result.data;
+}
+export async function getAgentRuns(): Promise<AgentRun[]> {
+  const response = await requestWithAuthentication(
+    "/operations/agent-runs",
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  const result =
+    (await response.json()) as AgentRunsResponse;
+
+  if (
+    !result.data ||
+    !Array.isArray(result.data.runs)
+  ) {
+    throw new Error(
+      "The agent activity API returned an invalid response.",
+    );
+  }
+
+  return result.data.runs;
 }

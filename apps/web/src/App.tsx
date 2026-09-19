@@ -28,7 +28,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RiskIntelligencePage } from "./pages/RiskIntelligencePage";
 import { RoutePlanningPage } from "./pages/RoutePlanningPage";
 import { DeliveryOperationsPage } from "./pages/DeliveryOperationsPage";
-
+import { AgentActivityPage } from "./pages/AgentActivityPage";
 type Health = {
   status: string;
   version: string;
@@ -837,6 +837,10 @@ export function App() {
 <Route
   path="/dashboard/deliveries"
   element={<DeliveryOperationsPage />}
+/>
+<Route
+  path="/dashboard/agents"
+  element={<AgentActivityPage />}
 />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
