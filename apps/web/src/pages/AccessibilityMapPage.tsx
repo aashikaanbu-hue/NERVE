@@ -206,6 +206,10 @@ export function AccessibilityMapPage() {
   <ShieldCheck />
   Approval centre
 </Link>
+          <Link to="/dashboard/notifications">
+  <Bell />
+  Alert centre
+</Link>
           <Link to="/dashboard/agents">
   <Bot />
   Agent activity
@@ -247,14 +251,14 @@ export function AccessibilityMapPage() {
           </div>
 
           <div className="dashboard-user">
-            <button
-              type="button"
-              className="notification-button"
-              aria-label="Notifications"
-            >
-              <Bell />
-              <i />
-            </button>
+            <Link
+  to="/dashboard/notifications"
+  className="notification-button"
+  aria-label="Notifications"
+>
+  <Bell />
+  <i />
+</Link>
 
             <div className="user-avatar">
               {user.fullName.charAt(0).toUpperCase()}

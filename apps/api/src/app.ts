@@ -23,6 +23,9 @@ import {
   operationsRouter,
 } from "./modules/operations/operations.routes.js";
 
+import {
+  notificationsRouter,
+} from "./modules/notifications/notifications.routes.js";
 export const app = express();
 
 app.disable("x-powered-by");
@@ -119,6 +122,9 @@ app.get(
 
         agentRuns:
           "/api/v1/operations/agent-runs",
+        
+        notifications:
+          "/api/v1/notifications",
       },
     });
   },
@@ -138,6 +144,9 @@ app.use(
   "/api/v1/operations",
   operationsRouter,
 );
-
+app.use(
+  "/api/v1/notifications",
+  notificationsRouter,
+);
 app.use(notFound);
 app.use(errorHandler);

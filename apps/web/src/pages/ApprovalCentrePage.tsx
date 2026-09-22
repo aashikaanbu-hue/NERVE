@@ -782,6 +782,10 @@ export function ApprovalCentrePage() {
             <ShieldCheck />
             Approval centre
           </Link>
+          <Link to="/dashboard/notifications">
+  <Bell />
+  Alert centre
+</Link>
 
           <Link to="/dashboard/agents">
             <Bot />
@@ -842,16 +846,15 @@ export function ApprovalCentrePage() {
           </div>
 
           <div className="dashboard-user">
-            <button
-              type="button"
-              className="notification-button"
-              aria-label="Notifications"
-            >
-              <Bell />
+            <Link
+  to="/dashboard/notifications"
+  className="notification-button"
+  aria-label="Notifications"
+>
+  <Bell />
 
-              {pendingCount >
-                0 && <i />}
-            </button>
+  {pendingCount > 0 && <i />}
+</Link>
 
             <span className="user-avatar">
               {user.fullName

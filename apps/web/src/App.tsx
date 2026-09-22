@@ -30,6 +30,7 @@ import { RoutePlanningPage } from "./pages/RoutePlanningPage";
 import { DeliveryOperationsPage } from "./pages/DeliveryOperationsPage";
 import { AgentActivityPage } from "./pages/AgentActivityPage";
 import { ApprovalCentrePage } from "./pages/ApprovalCentrePage";
+import { NotificationCentrePage } from "./pages/NotificationCentrePage";
 type Health = {
   status: string;
   version: string;
@@ -846,6 +847,10 @@ export function App() {
 <Route
   path="/dashboard/approvals"
   element={<ApprovalCentrePage />}
+/>
+<Route
+  path="/dashboard/notifications"
+  element={<NotificationCentrePage />}
 />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

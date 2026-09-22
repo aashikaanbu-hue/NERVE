@@ -276,7 +276,21 @@
   font: 800 1rem "Manrope", sans-serif;
   box-shadow: 0 10px 24px rgba(5, 77, 91, 0.16);
 }
+.dashboard-user > :is(div, span):not(.user-avatar) {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 
+.dashboard-user > :is(div, span):not(.user-avatar) b {
+  color: #0b2948;
+  font-size: 0.82rem;
+}
+
+.dashboard-user > :is(div, span):not(.user-avatar) small {
+  color: #74899a;
+  font-size: 0.68rem;
+}
 
 .dashboard-content {
   padding: 30px clamp(22px, 3.2vw, 52px) 54px;
@@ -992,7 +1006,9 @@
 
 @media (max-width: 620px) {
   .dashboard-header { padding-inline: 14px; }
-  .dashboard-user > span { display: none; }
+  .dashboard-user > :is(div, span):not(.user-avatar) {
+  display: none;
+}
   .dashboard-content { padding: 18px 14px 38px; }
   .dashboard-welcome { min-height: 220px; padding: 22px; }
   .dashboard-welcome h1 { font-size: 2rem; }

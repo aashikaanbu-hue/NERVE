@@ -308,6 +308,67 @@ export type ApprovalRecommendation = {
   decisions:
     ApprovalDecision[];
 };
+export type OperationalNotification = {
+  id: string;
+  userId: string;
+  sourceRecommendationId: string | null;
+  type: string;
+  severity: string;
+  status: string;
+  title: string;
+  message: string;
+  actionUrl: string | null;
+  metadata: Record<string, unknown> | null;
+  deliveredAt: string;
+  readAt: string | null;
+  acknowledgedAt: string | null;
+  dismissedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+
+  sourceRecommendation: {
+    id: string;
+    agentType: string;
+    type: string;
+    priority: string;
+    status: string;
+    title: string;
+    confidence: number;
+
+    corridor: {
+      id: string;
+      code: string;
+      name: string;
+    } | null;
+
+    incident: {
+      id: string;
+      referenceNumber: string;
+      title: string;
+      severity: string;
+    } | null;
+
+    delivery: {
+      id: string;
+      referenceNumber: string;
+      cargoType: string;
+      status: string;
+    } | null;
+  } | null;
+};
+
+export type NotificationFeed = {
+  generatedAt: string;
+
+  metrics: {
+    total: number;
+    unread: number;
+    critical: number;
+    acknowledged: number;
+  };
+
+  notifications: OperationalNotification[];
+};
 export type OperationsOverview = {
   generatedAt: string;
   metrics: OperationsMetrics;
@@ -340,6 +401,21 @@ type RecommendationDecisionResponse = {
   data: {
     recommendation:
       ApprovalRecommendation;
+  };
+};
+type NotificationFeedResponse = {
+  data: NotificationFeed;
+};
+
+type NotificationStatusResponse = {
+  data: {
+    notification: OperationalNotification;
+  };
+};
+
+type ReadAllNotificationsResponse = {
+  data: {
+    updated: number;
   };
 };
 type ApiErrorResponse = {
@@ -596,4 +672,86 @@ export async function reviewRecommendation(
   }
 
   return result.data.recommendation;
+}
+export async function getNotifications(
+  status = "ALL",
+): Promise<NotificationFeed> {
+  const response = await requestWithAuthentication(
+    `/notifications?status=${encodeURIComponent(status)}&limit=100`,
+  );
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const result =
+    (await response.json()) as NotificationFeedResponse;
+
+  if (
+    !result.data ||
+    !result.data.metrics ||
+    !Array.isArray(result.data.notifications)
+  ) {
+    throw new Error(
+      "The operational alerts API returned an invalid response.",
+    );
+  }
+
+  return result.data;
+}
+
+export async function updateNotificationStatus(
+  notificationId: string,
+  status:
+    | "UNREAD"
+    | "READ"
+    | "ACKNOWLEDGED"
+    | "DISMISSED",
+): Promise<OperationalNotification> {
+  const response = await requestWithAuthentication(
+    `/notifications/${notificationId}/status`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const result =
+    (await response.json()) as NotificationStatusResponse;
+
+  if (!result.data?.notification) {
+    throw new Error(
+      "The notification status API returned an invalid response.",
+    );
+  }
+
+  return result.data.notification;
+}
+
+export async function markAllNotificationsRead(): Promise<number> {
+  const response = await requestWithAuthentication(
+    "/notifications/read-all",
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const result =
+    (await response.json()) as ReadAllNotificationsResponse;
+
+  if (typeof result.data?.updated !== "number") {
+    throw new Error(
+      "The notification bulk update API returned an invalid response.",
+    );
+  }
+
+  return result.data.updated;
 }
