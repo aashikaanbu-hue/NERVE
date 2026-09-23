@@ -25,6 +25,7 @@ import {
   Truck,
   UserCheck,
   X,
+  PackageCheck,
 } from "lucide-react";
 
 import {
@@ -774,6 +775,10 @@ export function ApprovalCentrePage() {
             <Truck />
             Delivery operations
           </Link>
+          <Link to="/dashboard/supply-priorities">
+  <PackageCheck />
+  Supply priorities
+</Link>
 
           <Link
             to="/dashboard/approvals"

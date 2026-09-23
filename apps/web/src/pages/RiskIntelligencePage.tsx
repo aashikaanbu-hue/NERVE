@@ -24,6 +24,7 @@ import {
   Users,
   Waves,
   X,
+  PackageCheck,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -335,6 +336,10 @@ export function RiskIntelligencePage() {
           <Link to="/dashboard/deliveries">
   <Truck />
   Delivery operations
+</Link>
+<Link to="/dashboard/supply-priorities">
+  <PackageCheck />
+  Supply priorities
 </Link>
       <Link to="/dashboard/approvals">
   <ShieldCheck />

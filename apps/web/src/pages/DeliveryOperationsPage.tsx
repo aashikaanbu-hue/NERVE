@@ -440,6 +440,10 @@ export function DeliveryOperationsPage() {
 
             Delivery operations
           </Link>
+          <Link to="/dashboard/supply-priorities">
+  <PackageCheck />
+  Supply priorities
+</Link>
 <Link to="/dashboard/approvals">
   <ShieldCheck />
   Approval centre

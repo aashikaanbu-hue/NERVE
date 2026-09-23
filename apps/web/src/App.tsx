@@ -31,6 +31,7 @@ import { DeliveryOperationsPage } from "./pages/DeliveryOperationsPage";
 import { AgentActivityPage } from "./pages/AgentActivityPage";
 import { ApprovalCentrePage } from "./pages/ApprovalCentrePage";
 import { NotificationCentrePage } from "./pages/NotificationCentrePage";
+import { SupplyPriorityPage } from "./pages/SupplyPriorityPage";
 type Health = {
   status: string;
   version: string;
@@ -839,6 +840,10 @@ export function App() {
 <Route
   path="/dashboard/deliveries"
   element={<DeliveryOperationsPage />}
+/>
+<Route
+  path="/dashboard/supply-priorities"
+  element={<SupplyPriorityPage />}
 />
 <Route
   path="/dashboard/agents"

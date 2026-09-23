@@ -18,6 +18,7 @@ import {
   Truck,
   Users,
   X,
+  PackageCheck,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -246,6 +247,10 @@ export function DashboardPage() {
           <Link to="/dashboard/deliveries">
   <Truck />
   Delivery operations
+</Link>
+<Link to="/dashboard/supply-priorities">
+  <PackageCheck />
+  Supply priorities
 </Link>
 <Link to="/dashboard/approvals">
   <ShieldCheck />

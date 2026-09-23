@@ -26,6 +26,9 @@ import {
 import {
   notificationsRouter,
 } from "./modules/notifications/notifications.routes.js";
+import {
+  supplyPriorityRouter,
+} from "./modules/supply-priority/supply-priority.routes.js";
 export const app = express();
 
 app.disable("x-powered-by");
@@ -125,6 +128,8 @@ app.get(
         
         notifications:
           "/api/v1/notifications",
+        supplyPriorities:
+          "/api/v1/supply-priorities",
       },
     });
   },
@@ -147,6 +152,10 @@ app.use(
 app.use(
   "/api/v1/notifications",
   notificationsRouter,
+);
+app.use(
+  "/api/v1/supply-priorities",
+  supplyPriorityRouter,
 );
 app.use(notFound);
 app.use(errorHandler);

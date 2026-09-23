@@ -27,6 +27,7 @@ import {
   Wrench,
   X,
   Zap,
+  PackageCheck,
 } from "lucide-react";
 
 import {
@@ -649,6 +650,10 @@ export function AgentActivityPage() {
             <Truck />
             Delivery operations
           </Link>
+          <Link to="/dashboard/supply-priorities">
+  <PackageCheck />
+  Supply priorities
+</Link>
             <Link to="/dashboard/approvals">
   <ShieldCheck />
   Approval centre

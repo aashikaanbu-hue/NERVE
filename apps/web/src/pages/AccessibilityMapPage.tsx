@@ -19,6 +19,7 @@ import {
   Users,
   X,
   ShieldCheck,
+  PackageCheck,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -201,6 +202,10 @@ export function AccessibilityMapPage() {
           <Link to="/dashboard/deliveries">
   <Truck />
   Delivery operations
+</Link>
+<Link to="/dashboard/supply-priorities">
+  <PackageCheck />
+  Supply priorities
 </Link>
 <Link to="/dashboard/approvals">
   <ShieldCheck />

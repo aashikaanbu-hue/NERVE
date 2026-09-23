@@ -755,3 +755,144 @@ export async function markAllNotificationsRead(): Promise<number> {
 
   return result.data.updated;
 }
+export type SupplyPriorityBand =
+  | "P1"
+  | "P2"
+  | "P3"
+  | "P4";
+
+export type SupplyPriorityFactors = {
+  cargoUrgency: number;
+  shortageRisk: number;
+  populationImpact: number;
+  delayPressure: number;
+  routeRisk: number;
+  disasterSeverity: number;
+  vehicleReadiness: number;
+};
+
+export type RankedSupplyDelivery = {
+  rank: number;
+  score: number;
+  band: SupplyPriorityBand;
+  label: string;
+  recommendedAction: string;
+  reasons: string[];
+  factors: SupplyPriorityFactors;
+
+  delivery: {
+    id: string;
+    referenceNumber: string;
+    cargoType: string;
+    cargoDescription: string | null;
+    quantity: number | null;
+    unit: string | null;
+    priority: string;
+    status: string;
+    originName: string;
+    plannedDepartureAt: string | null;
+    estimatedArrivalAt: string | null;
+  };
+
+  destinationCommunity: {
+    id: string;
+    code: string;
+    name: string;
+    district: string;
+    population: number | null;
+    vulnerabilityScore: number;
+    accessStatus: string;
+  };
+
+  destinationFacility: {
+    id: string;
+    code: string;
+    name: string;
+    type: string;
+    operational: boolean;
+    accessStatus: string;
+  } | null;
+
+  assignedDriver: {
+    id: string;
+    fullName: string;
+    phone: string | null;
+  } | null;
+
+  corridor: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    riskScore: number;
+  } | null;
+
+  activeIncident: {
+    id: string;
+    referenceNumber: string;
+    title: string;
+    severity: string;
+    riskScore: number;
+  } | null;
+};
+
+export type SupplyPriorityFeed = {
+  generatedAt: string;
+
+  metrics: {
+    total: number;
+    p1: number;
+    p2: number;
+    p3: number;
+    p4: number;
+  };
+
+  methodology: {
+    cargoUrgency: number;
+    shortageRisk: number;
+    populationImpact: number;
+    delayPressure: number;
+    routeRisk: number;
+    disasterSeverity: number;
+    vehicleReadiness: number;
+    maximumScore: number;
+  };
+
+  priorities: RankedSupplyDelivery[];
+};
+
+type SupplyPriorityResponse = {
+  data: SupplyPriorityFeed;
+};
+
+export async function getSupplyPriorities():
+  Promise<SupplyPriorityFeed> {
+  const response =
+    await requestWithAuthentication(
+      "/supply-priorities",
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      SupplyPriorityResponse;
+
+  if (
+    !result.data ||
+    !result.data.metrics ||
+    !Array.isArray(
+      result.data.priorities,
+    )
+  ) {
+    throw new Error(
+      "The supply priority engine returned an invalid response.",
+    );
+  }
+
+  return result.data;
+}
