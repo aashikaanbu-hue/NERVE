@@ -25,6 +25,9 @@ import {
   processImpactAfterSense,
 } from "../../lib/impact-workflow.js";
 import {
+  processRouteAfterImpact,
+} from "../../lib/route-workflow.js";
+import {
   type AuthenticatedRequest,
   requireAuthentication,
 } from "../../middleware/auth.js";
@@ -785,12 +788,43 @@ fieldReportsRouter.patch(
         );
       }
     }
+        let routeRun: Awaited<
+      ReturnType<typeof processRouteAfterImpact>
+    > = null;
 
+    let routeError: string | null = null;
+
+    if (
+      impactRun?.status ===
+      AgentRunStatus.COMPLETED
+    ) {
+      try {
+        routeRun =
+          await processRouteAfterImpact(
+            impactRun.id,
+          );
+
+        routeError =
+          routeRun?.errorMessage ?? null;
+      } catch (error) {
+        routeError =
+          error instanceof Error
+            ? error.message
+            : "Route handoff failed.";
+
+        console.error(
+          "NERVE Route handoff failed:",
+          routeError,
+        );
+      }
+    }
     response.json({
       data: {
         report,
         agentRun: processedAgentRun,
         impactRun,
+        routeRun,
+        routeError,
         impactError,
 
         decision: {

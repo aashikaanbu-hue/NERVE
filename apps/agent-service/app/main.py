@@ -7,6 +7,11 @@ from app.agents.impact import (
     ImpactRequest,
     analyse_connectivity,
 )
+from app.agents.route import (
+    RouteAnalysis,
+    RouteRequest,
+    analyse_recorded_routes,
+)
 from app.agents.sense import (
     FieldEvidenceAnalysis,
     FieldEvidenceRequest,
@@ -64,3 +69,13 @@ async def analyse_connectivity_report(
     payload: ImpactRequest,
 ) -> ImpactAnalysis:
     return analyse_connectivity(payload)
+
+
+@app.post(
+    "/api/v1/agents/route/analyse-recorded-routes",
+    response_model=RouteAnalysis,
+)
+async def analyse_delivery_routes(
+    payload: RouteRequest,
+) -> RouteAnalysis:
+    return analyse_recorded_routes(payload)
