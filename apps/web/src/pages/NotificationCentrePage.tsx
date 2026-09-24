@@ -25,6 +25,7 @@ import {
   Truck,
   Users,
   X,
+  Camera,
 } from "lucide-react";
 
 import {
@@ -502,6 +503,10 @@ export function NotificationCentrePage() {
               </strong>
             )}
           </Link>
+          <Link to="/dashboard/field-evidence">
+  <Camera />
+  Field evidence
+</Link>
 
           <Link to="/dashboard/agents">
             <Bot />

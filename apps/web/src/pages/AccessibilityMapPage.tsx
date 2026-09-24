@@ -20,6 +20,7 @@ import {
   X,
   ShieldCheck,
   PackageCheck,
+  Camera,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -214,6 +215,10 @@ export function AccessibilityMapPage() {
           <Link to="/dashboard/notifications">
   <Bell />
   Alert centre
+</Link>
+<Link to="/dashboard/field-evidence">
+  <Camera />
+  Field evidence
 </Link>
           <Link to="/dashboard/agents">
   <Bot />

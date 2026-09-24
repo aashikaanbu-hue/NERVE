@@ -19,6 +19,7 @@ import {
   Users,
   X,
   PackageCheck,
+  Camera,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -263,6 +264,10 @@ export function DashboardPage() {
           <Link to="/dashboard/agents">
   <Bot />
   Agent activity
+</Link>
+<Link to="/dashboard/field-evidence">
+  <Camera />
+  Field evidence
 </Link>
         </nav>
 

@@ -29,6 +29,9 @@ import {
 import {
   supplyPriorityRouter,
 } from "./modules/supply-priority/supply-priority.routes.js";
+import {
+  fieldReportsRouter,
+} from "./modules/field-reports/field-reports.routes.js";
 export const app = express();
 
 app.disable("x-powered-by");
@@ -156,6 +159,10 @@ app.use(
 app.use(
   "/api/v1/supply-priorities",
   supplyPriorityRouter,
+);
+app.use(
+  "/api/v1/field-reports",
+  fieldReportsRouter,
 );
 app.use(notFound);
 app.use(errorHandler);

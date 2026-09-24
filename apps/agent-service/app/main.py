@@ -2,7 +2,11 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-
+from app.agents.sense import (
+    FieldEvidenceAnalysis,
+    FieldEvidenceRequest,
+    analyse_field_evidence,
+)
 app = FastAPI(
     title="NERVE Agent Service",
     description="Human-supervised Agentic AI orchestration service",
@@ -38,3 +42,11 @@ async def health() -> dict:
 @app.get("/api/v1/agents", response_model=list[AgentDefinition])
 async def list_agents() -> list[AgentDefinition]:
     return AGENTS
+@app.post(
+    "/api/v1/agents/sense/analyse-field-report",
+    response_model=FieldEvidenceAnalysis,
+)
+async def analyse_verified_field_report(
+    payload: FieldEvidenceRequest,
+) -> FieldEvidenceAnalysis:
+    return analyse_field_evidence(payload)

@@ -896,3 +896,249 @@ export async function getSupplyPriorities():
 
   return result.data;
 }
+export type FieldReportVerificationStatus =
+  | "PENDING"
+  | "VERIFIED"
+  | "REJECTED";
+
+export type FieldReportRecord = {
+  id: string;
+  reportedById: string;
+  corridorId: string | null;
+  roadSegmentId: string | null;
+  incidentId: string | null;
+  title: string;
+  description: string;
+  latitude: string | number;
+  longitude: string | number;
+  mediaUrls: string[];
+  verificationStatus:
+    FieldReportVerificationStatus;
+  capturedAt: string;
+  createdAt: string;
+  updatedAt: string;
+
+  corridor: {
+    id: string;
+    code: string;
+    name: string;
+    status: string;
+    riskScore: number;
+  } | null;
+
+  roadSegment: {
+    id: string;
+    code?: string;
+    name?: string;
+    status?: string;
+  } | null;
+
+  incident: {
+    id: string;
+    referenceNumber: string;
+    title: string;
+    severity: string;
+    status: string;
+    riskScore: number;
+  } | null;
+};
+
+export type FieldReportSummary = {
+  total: number;
+  pending: number;
+  verified: number;
+  rejected: number;
+  withMedia: number;
+};
+
+export type FieldReportFeed = {
+  reports: FieldReportRecord[];
+  total: number;
+
+  filters: {
+    status:
+      | "ALL"
+      | FieldReportVerificationStatus;
+
+    corridorId: string | null;
+    incidentId: string | null;
+  };
+};
+
+export type CreateFieldReportInput = {
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  corridorId?: string | null;
+  roadSegmentId?: string | null;
+  incidentId?: string | null;
+  mediaUrls?: string[];
+  capturedAt?: string;
+};
+
+type FieldReportSummaryResponse = {
+  data?: FieldReportSummary;
+};
+
+type FieldReportFeedResponse = {
+  data?: FieldReportFeed;
+};
+
+type FieldReportResponse = {
+  data?: {
+    report?: FieldReportRecord;
+
+    sync?: {
+      status: string;
+      syncedAt: string;
+    };
+  };
+};
+
+export async function getFieldReportSummary():
+  Promise<FieldReportSummary> {
+  const response =
+    await requestWithAuthentication(
+      "/field-reports/summary",
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      FieldReportSummaryResponse;
+
+  if (
+    !result.data ||
+    typeof result.data.total !== "number"
+  ) {
+    throw new Error(
+      "The field report summary API returned an invalid response.",
+    );
+  }
+
+  return result.data;
+}
+
+export async function getFieldReports(
+  status:
+    | "ALL"
+    | FieldReportVerificationStatus = "ALL",
+): Promise<FieldReportFeed> {
+  const parameters =
+    new URLSearchParams({
+      status,
+      limit: "100",
+    });
+
+  const response =
+    await requestWithAuthentication(
+      `/field-reports?${parameters.toString()}`,
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      FieldReportFeedResponse;
+
+  if (
+    !result.data ||
+    !Array.isArray(result.data.reports)
+  ) {
+    throw new Error(
+      "The field report API returned an invalid response.",
+    );
+  }
+
+  return result.data;
+}
+
+export async function createFieldReport(
+  input: CreateFieldReportInput,
+): Promise<FieldReportRecord> {
+  const response =
+    await requestWithAuthentication(
+      "/field-reports",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify(input),
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      FieldReportResponse;
+
+  if (!result.data?.report) {
+    throw new Error(
+      "The field report API returned an invalid response.",
+    );
+  }
+
+  return result.data.report;
+}
+
+export async function updateFieldReportVerification(
+  fieldReportId: string,
+  status: Exclude<
+    FieldReportVerificationStatus,
+    "PENDING"
+  >,
+): Promise<FieldReportRecord> {
+  const response =
+    await requestWithAuthentication(
+      `/field-reports/${fieldReportId}/verification`,
+      {
+        method: "PATCH",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          status,
+        }),
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      FieldReportResponse;
+
+  if (!result.data?.report) {
+    throw new Error(
+      "The field report verification API returned an invalid response.",
+    );
+  }
+
+  return result.data.report;
+}

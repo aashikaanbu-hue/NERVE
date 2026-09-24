@@ -28,6 +28,7 @@ import {
   X,
   Zap,
   PackageCheck,
+  Camera,
 } from "lucide-react";
 
 import {
@@ -661,6 +662,10 @@ export function AgentActivityPage() {
 <Link to="/dashboard/notifications">
   <Bell />
   Alert centre
+</Link>
+<Link to="/dashboard/field-evidence">
+  <Camera />
+  Field evidence
 </Link>
           <Link
             to="/dashboard/agents"

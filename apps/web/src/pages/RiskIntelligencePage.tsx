@@ -25,6 +25,7 @@ import {
   Waves,
   X,
   PackageCheck,
+  Camera,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -344,6 +345,10 @@ export function RiskIntelligencePage() {
       <Link to="/dashboard/approvals">
   <ShieldCheck />
   Approval centre
+</Link>
+<Link to="/dashboard/field-evidence">
+  <Camera />
+  Field evidence
 </Link>
           <Link to="/dashboard/notifications">
   <Bell />
