@@ -2,6 +2,11 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+from app.agents.impact import (
+    ImpactAnalysis,
+    ImpactRequest,
+    analyse_connectivity,
+)
 from app.agents.sense import (
     FieldEvidenceAnalysis,
     FieldEvidenceRequest,
@@ -50,3 +55,12 @@ async def analyse_verified_field_report(
     payload: FieldEvidenceRequest,
 ) -> FieldEvidenceAnalysis:
     return analyse_field_evidence(payload)
+
+@app.post(
+    "/api/v1/agents/impact/analyse-connectivity",
+    response_model=ImpactAnalysis,
+)
+async def analyse_connectivity_report(
+    payload: ImpactRequest,
+) -> ImpactAnalysis:
+    return analyse_connectivity(payload)

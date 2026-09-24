@@ -1142,3 +1142,67 @@ export async function updateFieldReportVerification(
 
   return result.data.report;
 }
+export type FieldReportCorridorOption = {
+  id: string;
+  code: string;
+  name: string;
+  district: string;
+  status: string;
+  riskScore: number;
+  communityCount: number;
+};
+
+type FieldReportCorridorsResponse = {
+  data?: {
+    corridors?: Array<{
+      id: string;
+      code: string;
+      name: string;
+      district: string;
+      status: string;
+      riskScore: number;
+      communities?: unknown[];
+    }>;
+  };
+};
+
+export async function getFieldReportCorridorOptions():
+  Promise<FieldReportCorridorOption[]> {
+  const response =
+    await requestWithAuthentication(
+      "/operations/corridors",
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(response),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      FieldReportCorridorsResponse;
+
+  if (
+    !Array.isArray(
+      result.data?.corridors,
+    )
+  ) {
+    throw new Error(
+      "The corridor API returned an invalid response.",
+    );
+  }
+
+  return result.data.corridors.map(
+    (corridor) => ({
+      id: corridor.id,
+      code: corridor.code,
+      name: corridor.name,
+      district: corridor.district,
+      status: corridor.status,
+      riskScore: corridor.riskScore,
+      communityCount:
+        corridor.communities?.length ?? 0,
+    }),
+  );
+}

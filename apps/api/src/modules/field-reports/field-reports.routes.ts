@@ -22,6 +22,9 @@ import {
   analyseFieldEvidence,
 } from "../../lib/agent-service.js";
 import {
+  processImpactAfterSense,
+} from "../../lib/impact-workflow.js";
+import {
   type AuthenticatedRequest,
   requireAuthentication,
 } from "../../middleware/auth.js";
@@ -754,19 +757,45 @@ fieldReportsRouter.patch(
       }
     }
 
+        let impactRun: Awaited<
+      ReturnType<typeof processImpactAfterSense>
+    > = null;
+
+    let impactError: string | null = null;
+
+    if (
+      processedAgentRun?.status ===
+      AgentRunStatus.COMPLETED
+    ) {
+      try {
+        impactRun = await processImpactAfterSense(
+          processedAgentRun.id,
+        );
+
+        impactError = impactRun?.errorMessage ?? null;
+      } catch (error) {
+        impactError =
+          error instanceof Error
+            ? error.message
+            : "Impact handoff failed.";
+
+        console.error(
+          "NERVE Impact handoff failed:",
+          impactError,
+        );
+      }
+    }
+
     response.json({
       data: {
         report,
-
-        agentRun:
-          processedAgentRun,
+        agentRun: processedAgentRun,
+        impactRun,
+        impactError,
 
         decision: {
-          status:
-            report.verificationStatus,
-
-          decidedAt:
-            new Date().toISOString(),
+          status: report.verificationStatus,
+          decidedAt: new Date().toISOString(),
         },
       },
     });

@@ -41,6 +41,7 @@
 
 .field-evidence-page button,
 .field-evidence-page input,
+.field-evidence-page select,
 .field-evidence-page textarea {
   font: inherit;
 }
@@ -1465,6 +1466,7 @@
 }
 
 .field-report-modal input,
+.field-report-modal select,
 .field-report-modal textarea {
   width: 100%;
   color: #173950;
@@ -1477,9 +1479,14 @@
     box-shadow 160ms ease;
 }
 
-.field-report-modal input {
+.field-report-modal input,
+.field-report-modal select {
   min-height: 49px;
   padding: 0 14px;
+}
+
+.field-report-modal select {
+  cursor: pointer;
 }
 
 .field-report-modal textarea {
@@ -1490,6 +1497,7 @@
 }
 
 .field-report-modal input:focus,
+.field-report-modal select:focus,
 .field-report-modal textarea:focus {
   border-color: #20bba6;
   box-shadow:
@@ -1497,6 +1505,7 @@
 }
 
 .field-report-modal input::placeholder,
+.field-report-modal select::placeholder,
 .field-report-modal textarea::placeholder {
   color: #9aabb8;
 }

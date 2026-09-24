@@ -50,10 +50,12 @@ import {
 
 import {
   createFieldReport,
+  getFieldReportCorridorOptions,
   getFieldReports,
   getFieldReportSummary,
   updateFieldReportVerification,
   type CreateFieldReportInput,
+  type FieldReportCorridorOption,
   type FieldReportRecord,
   type FieldReportSummary,
   type FieldReportVerificationStatus,
@@ -75,6 +77,7 @@ type StoredFieldDraft = {
 type ReportFormState = {
   title: string;
   description: string;
+  corridorId: string;
   latitude: string;
   longitude: string;
   mediaUrl: string;
@@ -108,11 +111,11 @@ const emptySummary: FieldReportSummary = {
 const initialForm: ReportFormState = {
   title: "",
   description: "",
+  corridorId: "",
   latitude: "",
   longitude: "",
   mediaUrl: "",
 };
-
 function readDrafts(): StoredFieldDraft[] {
   try {
     const stored =
@@ -292,6 +295,12 @@ export function FieldEvidencePage() {
     useState<ReportFormState>(
       initialForm,
     );
+    const [
+    corridors,
+    setCorridors,
+  ] = useState<
+    FieldReportCorridorOption[]
+  >([]);
 
   const [
     drafts,
@@ -322,7 +331,21 @@ export function FieldEvidencePage() {
         null,
       [reports, selectedReportId],
     );
+  async function loadCorridors():
+    Promise<void> {
+    try {
+      const corridorOptions =
+        await getFieldReportCorridorOptions();
 
+      setCorridors(corridorOptions);
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Corridor options could not be loaded.",
+      );
+    }
+  }
   async function loadReports(
     nextFilter: ReportFilter = filter,
   ): Promise<void> {
@@ -380,6 +403,7 @@ export function FieldEvidencePage() {
     }
 
     void loadReports("ALL");
+        void loadCorridors();
   }, [navigate, user]);
 
   useEffect(() => {
@@ -492,6 +516,8 @@ export function FieldEvidencePage() {
       title: form.title.trim(),
       description:
         form.description.trim(),
+      corridorId:
+        form.corridorId || null,
       latitude,
       longitude,
       mediaUrls: form.mediaUrl.trim()
@@ -1602,7 +1628,36 @@ export function FieldEvidencePage() {
                   required
                 />
               </label>
+                                  <label>
+                Linked corridor
+                <select
+                  value={form.corridorId}
+                  onChange={(event) =>
+                    updateForm(
+                      "corridorId",
+                      event.target.value,
+                    )
+                  }
+                >
+                  <option value="">
+                    Select corridor for automated impact assessment
+                  </option>
 
+                  {corridors.map(
+                    (corridor) => (
+                      <option
+                        key={corridor.id}
+                        value={corridor.id}
+                      >
+                        {corridor.code} ·{" "}
+                        {corridor.name} ·{" "}
+                        {corridor.communityCount}{" "}
+                        communities
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
               <div className="field-location-inputs">
                 <label>
                   Latitude
