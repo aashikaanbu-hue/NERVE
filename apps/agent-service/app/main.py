@@ -17,6 +17,11 @@ from app.agents.sense import (
     FieldEvidenceRequest,
     analyse_field_evidence,
 )
+from app.agents.command import (
+    CommandAnalysis,
+    CommandRequest,
+    analyse_command_plan,
+)
 app = FastAPI(
     title="NERVE Agent Service",
     description="Human-supervised Agentic AI orchestration service",
@@ -79,3 +84,11 @@ async def analyse_delivery_routes(
     payload: RouteRequest,
 ) -> RouteAnalysis:
     return analyse_recorded_routes(payload)
+@app.post(
+    "/api/v1/agents/command/build-action-plan",
+    response_model=CommandAnalysis,
+)
+async def build_command_action_plan(
+    payload: CommandRequest,
+) -> CommandAnalysis:
+    return analyse_command_plan(payload) 

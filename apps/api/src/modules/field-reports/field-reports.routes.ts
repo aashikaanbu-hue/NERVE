@@ -28,6 +28,9 @@ import {
   processRouteAfterImpact,
 } from "../../lib/route-workflow.js";
 import {
+  processCommandAfterRoute,
+} from "../../lib/command-workflow.js";
+import {
   type AuthenticatedRequest,
   requireAuthentication,
 } from "../../middleware/auth.js";
@@ -818,14 +821,46 @@ fieldReportsRouter.patch(
         );
       }
     }
+        let commandRun: Awaited<
+      ReturnType<typeof processCommandAfterRoute>
+    > = null;
+
+    let commandError: string | null = null;
+
+    if (
+      routeRun?.status ===
+      AgentRunStatus.COMPLETED
+    ) {
+      try {
+        commandRun =
+          await processCommandAfterRoute(
+            routeRun.id,
+          );
+
+        commandError =
+          commandRun?.errorMessage ?? null;
+      } catch (error) {
+        commandError =
+          error instanceof Error
+            ? error.message
+            : "Command handoff failed.";
+
+        console.error(
+          "NERVE Command handoff failed:",
+          commandError,
+        );
+      }
+    }
     response.json({
       data: {
         report,
         agentRun: processedAgentRun,
         impactRun,
+        impactError,
         routeRun,
         routeError,
-        impactError,
+        commandRun,
+        commandError,
 
         decision: {
           status: report.verificationStatus,
