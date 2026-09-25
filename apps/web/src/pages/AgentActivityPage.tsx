@@ -503,20 +503,24 @@ export function AgentActivityPage() {
     );
 
   const averageConfidence =
-    relatedRecommendations.length
-      ? Math.round(
-          relatedRecommendations.reduce(
+  relatedRecommendations.length
+    ? Math.round(
+        relatedRecommendations.reduce(
+          (
+            total,
+            recommendation,
+          ) =>
+            total +
             (
-              total,
-              recommendation,
-            ) =>
-              total +
-              recommendation.confidence,
-            0,
-          ) /
-            relatedRecommendations.length,
-        )
-      : 91;
+              recommendation.confidence <= 1
+                ? recommendation.confidence * 100
+                : recommendation.confidence
+            ),
+          0,
+        ) /
+          relatedRecommendations.length,
+      )
+    : 91;
 
   const pendingApprovals =
     allRecommendations.filter(
