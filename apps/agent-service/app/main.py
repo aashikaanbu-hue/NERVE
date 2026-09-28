@@ -22,6 +22,11 @@ from app.agents.command import (
     CommandRequest,
     analyse_command_plan,
 )
+from app.agents.forecast import (
+    CorridorForecastAnalysis,
+    CorridorForecastRequest,
+    analyse_corridor_forecast,
+)
 app = FastAPI(
     title="NERVE Agent Service",
     description="Human-supervised Agentic AI orchestration service",
@@ -41,6 +46,7 @@ AGENTS = [
     AgentDefinition(code="impact", name="NERVE Impact", purpose="Connectivity and isolation forecasting"),
     AgentDefinition(code="route", name="NERVE Route", purpose="Risk-aware route recommendation"),
     AgentDefinition(code="command", name="NERVE Command", purpose="Response planning and monitoring"),
+    AgentDefinition(code="forecast", name="NERVE Forecast", purpose="Corridor forecasting"),
 ]
 
 
@@ -57,6 +63,16 @@ async def health() -> dict:
 @app.get("/api/v1/agents", response_model=list[AgentDefinition])
 async def list_agents() -> list[AgentDefinition]:
     return AGENTS
+@app.post(
+    "/api/v1/agents/sense/forecast-corridor",
+    response_model=CorridorForecastAnalysis,
+)
+async def forecast_corridor_risk(
+    payload: CorridorForecastRequest,
+) -> CorridorForecastAnalysis:
+    return analyse_corridor_forecast(
+        payload,
+    )
 @app.post(
     "/api/v1/agents/sense/analyse-field-report",
     response_model=FieldEvidenceAnalysis,

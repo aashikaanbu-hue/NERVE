@@ -32,6 +32,9 @@ import {
 import {
   fieldReportsRouter,
 } from "./modules/field-reports/field-reports.routes.js";
+import {
+  forecastsRouter,
+} from "./modules/forecasts/forecasts.routes.js";
 export const app = express();
 
 app.disable("x-powered-by");
@@ -133,6 +136,8 @@ app.get(
           "/api/v1/notifications",
         supplyPriorities:
           "/api/v1/supply-priorities",
+          forecasts:
+            "/api/v1/forecasts",
       },
     });
   },
@@ -163,6 +168,10 @@ app.use(
 app.use(
   "/api/v1/field-reports",
   fieldReportsRouter,
+);
+app.use(
+  "/api/v1/forecasts",
+  forecastsRouter,
 );
 app.use(notFound);
 app.use(errorHandler);

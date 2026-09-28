@@ -90,3 +90,175 @@ export async function analyseFieldEvidence(
 
   return result as SenseFieldEvidenceAnalysis;
 }
+export type ForecastRiskLevel =
+  | "NORMAL"
+  | "WATCH"
+  | "WARNING"
+  | "CRITICAL";
+
+export type CorridorForecastInput = {
+  agentRunId: string;
+  corridorId: string;
+  corridorCode: string | null;
+  corridorName: string;
+  latitude: number;
+  longitude: number;
+  existingRiskScore: number;
+  slopeSusceptibility: number;
+};
+
+export type CorridorForecastMetrics = {
+  antecedentRainfall72hMm: number;
+  forecastRainfall24hMm: number;
+  forecastRainfall72hMm: number;
+  maximumPrecipitationProbability: number;
+  meanSurfaceSoilMoisture24h:
+    | number
+    | null;
+  proactiveRiskScore: number;
+  riskLevel: ForecastRiskLevel;
+  rainfallTrend:
+    | "INTENSIFYING"
+    | "STEADY"
+    | "EASING";
+};
+
+export type CorridorForecastToolCall = {
+  toolName: string;
+
+  status:
+    | "SUCCEEDED"
+    | "FAILED";
+
+  result: Record<
+    string,
+    unknown
+  >;
+};
+
+export type CorridorForecastAnalysis = {
+  agentRunId: string;
+  corridorId: string;
+  corridorCode: string | null;
+  corridorName: string;
+
+  status: "COMPLETED";
+  assessmentStatus:
+    ForecastRiskLevel;
+
+  source: string;
+  methodology: string;
+
+  metrics:
+    CorridorForecastMetrics;
+
+  riskFactors: string[];
+  reasoning: string;
+  recommendedAction: string;
+
+  requiresApproval: boolean;
+  automaticExecutionBlocked:
+    boolean;
+
+  nextAgent:
+    | "IMPACT"
+    | null;
+
+  forecastStart: string;
+  forecastEnd: string;
+  generatedAt: string;
+
+  limitations: string[];
+
+  toolCalls:
+    CorridorForecastToolCall[];
+};
+
+export async function analyseCorridorForecast(
+  input: CorridorForecastInput,
+): Promise<CorridorForecastAnalysis> {
+  const response = await fetch(
+    `${env.agentServiceUrl}/api/v1/agents/sense/forecast-corridor`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify(
+        input,
+      ),
+
+      signal:
+        AbortSignal.timeout(
+          20_000,
+        ),
+    },
+  );
+
+  if (!response.ok) {
+    const errorMessage =
+      await response.text();
+
+    throw new Error(
+      `NERVE Forecast failed with status ${response.status}: ` +
+        errorMessage.slice(
+          0,
+          300,
+        ),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      Partial<{
+        status: string;
+        assessmentStatus:
+          ForecastRiskLevel;
+        source: string;
+
+        metrics:
+          Partial<
+            CorridorForecastMetrics
+          >;
+
+        riskFactors:
+          unknown[];
+
+        toolCalls:
+          unknown[];
+      }> &
+        Partial<
+          CorridorForecastAnalysis
+        >;
+
+  if (
+    result.status !==
+      "COMPLETED" ||
+    !result.metrics ||
+    typeof result.metrics
+      .forecastRainfall24hMm !==
+      "number" ||
+    typeof result.metrics
+      .forecastRainfall72hMm !==
+      "number" ||
+    typeof result.metrics
+      .proactiveRiskScore !==
+      "number" ||
+    !Array.isArray(
+      result.riskFactors,
+    ) ||
+    !Array.isArray(
+      result.toolCalls,
+    )
+  ) {
+    throw new Error(
+      "NERVE Forecast returned an invalid analysis response.",
+    );
+  }
+
+  return result as
+    CorridorForecastAnalysis;
+}

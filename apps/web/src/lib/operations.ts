@@ -1206,3 +1206,185 @@ export async function getFieldReportCorridorOptions():
     }),
   );
 }
+export type ForecastRiskLevel =
+  | "NORMAL"
+  | "WATCH"
+  | "WARNING"
+  | "CRITICAL";
+
+export type CorridorForecastMetrics = {
+  antecedentRainfall72hMm:
+    number;
+
+  forecastRainfall24hMm:
+    number;
+
+  forecastRainfall72hMm:
+    number;
+
+  maximumPrecipitationProbability:
+    number;
+
+  meanSurfaceSoilMoisture24h:
+    | number
+    | null;
+
+  proactiveRiskScore:
+    number;
+
+  riskLevel:
+    ForecastRiskLevel;
+
+  rainfallTrend:
+    | "INTENSIFYING"
+    | "STEADY"
+    | "EASING";
+};
+
+export type CorridorForecastEntry = {
+  corridor: {
+    id: string;
+    code: string;
+    name: string;
+    district: string;
+    state: string;
+    status: string;
+    storedRiskScore: number;
+    latitude: number;
+    longitude: number;
+  };
+
+  forecast: {
+    agentRunId: string;
+    corridorId: string;
+    corridorCode:
+      | string
+      | null;
+    corridorName: string;
+
+    status: "COMPLETED";
+
+    assessmentStatus:
+      ForecastRiskLevel;
+
+    source: string;
+    methodology: string;
+
+    metrics:
+      CorridorForecastMetrics;
+
+    riskFactors: string[];
+    reasoning: string;
+    recommendedAction: string;
+
+    requiresApproval:
+      boolean;
+
+    automaticExecutionBlocked:
+      boolean;
+
+    nextAgent:
+      | "IMPACT"
+      | null;
+
+    forecastStart: string;
+    forecastEnd: string;
+    generatedAt: string;
+
+    limitations: string[];
+
+    toolCalls: Array<{
+      toolName: string;
+
+      status:
+        | "SUCCEEDED"
+        | "FAILED";
+
+      result: Record<
+        string,
+        unknown
+      >;
+    }>;
+  };
+};
+
+export type ProactiveForecastFeed = {
+  generatedAt: string;
+  source: string;
+  methodology: string;
+
+  metrics: {
+    totalCorridors: number;
+    assessed: number;
+    unavailable: number;
+    watchOrAbove: number;
+  };
+
+  forecasts:
+    CorridorForecastEntry[];
+
+  unavailable: Array<{
+    corridor: {
+      id: string;
+      code: string;
+      name: string;
+    };
+
+    reason: string;
+  }>;
+
+  safeguards: {
+    automaticRoadClosure:
+      boolean;
+
+    automaticRerouting:
+      boolean;
+
+    humanApprovalRequired:
+      boolean;
+
+    note: string;
+  };
+};
+
+type ProactiveForecastResponse = {
+  data:
+    ProactiveForecastFeed;
+};
+
+export async function getProactiveForecasts():
+  Promise<ProactiveForecastFeed> {
+  const response =
+    await requestWithAuthentication(
+      "/forecasts",
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+      ),
+    );
+  }
+
+  const result =
+    (await response.json()) as
+      ProactiveForecastResponse;
+
+  if (
+    !result.data ||
+    !result.data.metrics ||
+    !Array.isArray(
+      result.data.forecasts,
+    ) ||
+    !Array.isArray(
+      result.data.unavailable,
+    )
+  ) {
+    throw new Error(
+      "The proactive forecast API returned an invalid response.",
+    );
+  }
+
+  return result.data;
+}

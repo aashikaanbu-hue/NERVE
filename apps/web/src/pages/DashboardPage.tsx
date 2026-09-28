@@ -20,6 +20,7 @@ import {
   X,
   PackageCheck,
   Camera,
+  RefreshCw,
 } from "lucide-react";
 
 import { useEffect, useState } from "react";
@@ -35,8 +36,10 @@ import {
 
 import {
   getOperationsOverview,
+  getProactiveForecasts,
   type OperationsOverview,
   type OverviewRecommendation,
+  type ProactiveForecastFeed,
 } from "../lib/operations";
 
 import "./dashboard.css";
@@ -128,9 +131,28 @@ export function DashboardPage() {
     getAuthenticatedUser(),
   );
   const [overview, setOverview] = useState<OperationsOverview | null>(null);
+  const [proactiveForecasts, setProactiveForecasts] = useState<ProactiveForecastFeed | null>(null);
   const [loading, setLoading] = useState(true);
   const [operationsError, setOperationsError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [
+  forecastFeed,
+  setForecastFeed,
+] = useState<ProactiveForecastFeed | null>(
+  null,
+);
+
+const [
+  forecastLoading,
+  setForecastLoading,
+] = useState(true);
+
+const [
+  forecastError,
+  setForecastError,
+] = useState<string | null>(
+  null,
+);
 
   useEffect(() => {
     let mounted = true;
@@ -161,6 +183,34 @@ export function DashboardPage() {
             );
           }
         }
+                try {
+          const forecastData =
+            await getProactiveForecasts();
+
+          if (mounted) {
+            setForecastFeed(
+              forecastData,
+            );
+
+            setForecastError(
+              null,
+            );
+          }
+        } catch (error) {
+          if (mounted) {
+            setForecastError(
+              error instanceof Error
+                ? error.message
+                : "Forecast data could not be loaded.",
+            );
+          }
+        } finally {
+          if (mounted) {
+            setForecastLoading(
+              false,
+            );
+          }
+        }
       } catch {
         if (mounted) {
           navigate("/login", { replace: true });
@@ -178,6 +228,36 @@ export function DashboardPage() {
       mounted = false;
     };
   }, [navigate]);
+
+  async function refreshForecasts():
+  Promise<void> {
+  setForecastLoading(
+    true,
+  );
+
+  try {
+    const forecastData =
+      await getProactiveForecasts();
+
+    setForecastFeed(
+      forecastData,
+    );
+
+    setForecastError(
+      null,
+    );
+  } catch (error) {
+    setForecastError(
+      error instanceof Error
+        ? error.message
+        : "Forecast data could not be refreshed.",
+    );
+  } finally {
+    setForecastLoading(
+      false,
+    );
+  }
+}
 
   async function handleLogout(): Promise<void> {
     await logout();
@@ -201,6 +281,14 @@ export function DashboardPage() {
   const metrics = overview?.metrics;
   const recommendations = overview?.recommendations ?? [];
   const primaryIncident = overview?.incidents[0];
+  const primaryForecast =
+  forecastFeed?.forecasts[0];
+
+const proactiveForecast =
+  primaryForecast?.forecast;
+
+const forecastMetrics =
+  proactiveForecast?.metrics;
 
   return (
     <div className="dashboard-page">
@@ -352,7 +440,192 @@ export function DashboardPage() {
               </span>
             </div>
           </div>
+          <section
+  className={`proactive-forecast-card ${
+    proactiveForecast
+      ? proactiveForecast.assessmentStatus.toLowerCase()
+      : "loading"
+  }`}
+>
+  <header className="proactive-forecast-header">
+    <div className="proactive-forecast-title">
+      <span className="forecast-icon">
+        <CloudRain />
+      </span>
 
+      <span>
+        <small>
+          PROACTIVE WEATHER INTELLIGENCE
+        </small>
+
+        <b>
+          {primaryForecast
+            ? primaryForecast.corridor.name
+            : "Corridor forecast"}
+        </b>
+
+        <em>
+          Field report not required · Open-Meteo live forecast
+        </em>
+      </span>
+    </div>
+
+    <div className="proactive-forecast-actions">
+      <span
+        className={`forecast-risk-badge ${
+          proactiveForecast
+            ? proactiveForecast.assessmentStatus.toLowerCase()
+            : "loading"
+        }`}
+      >
+        {proactiveForecast?.assessmentStatus ??
+          (forecastLoading
+            ? "ANALYSING"
+            : "UNAVAILABLE")}
+      </span>
+
+      <button
+        type="button"
+        className="forecast-refresh-button"
+        onClick={() =>
+          void refreshForecasts()
+        }
+        disabled={forecastLoading}
+        aria-label="Refresh proactive forecast"
+      >
+        <RefreshCw
+          className={
+            forecastLoading
+              ? "forecast-spinning"
+              : ""
+          }
+        />
+      </button>
+    </div>
+  </header>
+
+  {forecastError ? (
+    <div className="forecast-state error">
+      <AlertTriangle />
+      <span>
+        <b>Forecast connection issue</b>
+        <small>{forecastError}</small>
+      </span>
+    </div>
+  ) : !forecastMetrics ? (
+    <div className="forecast-state">
+      <Activity />
+      <span>
+        <b>
+          Reading weather-model data
+        </b>
+        <small>
+          Analysing recent and forecast rainfall…
+        </small>
+      </span>
+    </div>
+  ) : (
+    <>
+      <div className="forecast-metric-grid">
+        <article>
+          <small>
+            Previous 72 hours
+          </small>
+          <b>
+            {forecastMetrics
+              .antecedentRainfall72hMm.toFixed(
+                1,
+              )}{" "}
+            mm
+          </b>
+          <em>
+            Antecedent rainfall
+          </em>
+        </article>
+
+        <article>
+          <small>
+            Next 24 hours
+          </small>
+          <b>
+            {forecastMetrics
+              .forecastRainfall24hMm.toFixed(
+                1,
+              )}{" "}
+            mm
+          </b>
+          <em>
+            Forecast rainfall
+          </em>
+        </article>
+
+        <article>
+          <small>
+            Next 72 hours
+          </small>
+          <b>
+            {forecastMetrics
+              .forecastRainfall72hMm.toFixed(
+                1,
+              )}{" "}
+            mm
+          </b>
+          <em>
+            Cumulative forecast
+          </em>
+        </article>
+
+        <article>
+          <small>
+            Proactive risk
+          </small>
+          <b>
+            {forecastMetrics
+              .proactiveRiskScore.toFixed(
+                1,
+              )}
+            /100
+          </b>
+          <em>
+            {formatText(
+              forecastMetrics
+                .rainfallTrend,
+            )}
+          </em>
+        </article>
+      </div>
+
+      <div className="forecast-explanation">
+        <span>
+          <Gauge />
+        </span>
+
+        <div>
+          <small>
+            EXPLAINABLE FORECAST
+          </small>
+
+          <b>
+            {proactiveForecast?.riskFactors[0] ??
+              "Live weather context assessed"}
+          </b>
+
+          <p>
+            {
+              proactiveForecast
+                ?.recommendedAction
+            }
+          </p>
+        </div>
+
+        <span className="forecast-safeguard">
+          <ShieldCheck />
+          Human approval retained
+        </span>
+      </div>
+    </>
+  )}
+</section>
           <div className="dashboard-metrics">
             <article>
               <div className="metric-icon green">
