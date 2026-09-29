@@ -442,3 +442,57 @@ The current MVP includes:
 - Field evidence ingestion and verification
 - Supply-priority decision support
 - End-to-end safety validation
+## Proactive weather intelligence
+
+NERVE can screen road corridors before a field report is submitted.
+
+The proactive forecast flow:
+
+1. Reads each corridor's recorded road-segment coordinates.
+2. Retrieves recent and forecast weather-model data from Open-Meteo.
+3. Measures antecedent rainfall for the previous 72 hours.
+4. Measures forecast rainfall for the next 24 and 72 hours.
+5. Combines weather context, stored corridor risk and a neutral terrain baseline.
+6. Produces an explainable `NORMAL`, `WATCH`, `WARNING` or `CRITICAL` screening status.
+7. Preserves human authority for road restrictions, rerouting and community alerts.
+
+The proactive score is a transparent operational screening indicator. It is not presented as a calibrated landslide probability.
+
+### Forecast API
+
+Authenticated business API:
+
+```text
+GET /api/v1/forecasts
+```
+
+Agent-service endpoint:
+
+```text
+POST /api/v1/agents/sense/forecast-corridor
+```
+
+Weather source:
+
+```text
+Open-Meteo Weather Forecast API
+```
+
+### Safety controls
+
+- Forecast data cannot automatically close a road.
+- Forecast data cannot automatically reroute a delivery.
+- Forecast data cannot automatically notify a community.
+- Critical operational action requires named human approval.
+- Limitations and methodology remain visible in the response.
+
+### Verification
+
+Run the complete smoke suite:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+.\scripts\day19-smoke.ps1
+```
+
+The suite verifies 25 health, security, forecast, agent and human-oversight behaviours.

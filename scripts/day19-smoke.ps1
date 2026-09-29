@@ -151,7 +151,78 @@ Assert-HttpStatus `
   }
 
 Write-Host ""
-Write-Host "4. Sense agent"
+Write-Host ""
+Write-Host "4. Proactive forecast agent"
+
+$forecastPayload = @{
+  agentRunId =
+    "smoke-forecast-$([guid]::NewGuid())"
+
+  corridorId =
+    "smoke-corridor"
+
+  corridorCode =
+    "SMOKE-CORRIDOR-01"
+
+  corridorName =
+    "Smoke Test Forecast Corridor"
+
+  latitude = 25.2874
+  longitude = 91.7261
+
+  existingRiskScore = 68.5
+  slopeSusceptibility = 50
+}
+
+$forecastResult =
+  Invoke-AgentPost `
+    -Path "/api/v1/agents/sense/forecast-corridor" `
+    -Payload $forecastPayload
+
+Assert-True `
+  (
+    $forecastResult.status -eq
+    "COMPLETED"
+  ) `
+  "Forecast agent completes successfully"
+
+Assert-True `
+  (
+    $forecastResult.source -eq
+    "Open-Meteo Weather Forecast API"
+  ) `
+  "Forecast agent uses real Open-Meteo data"
+
+Assert-True `
+  (
+    $forecastResult.metrics.
+      proactiveRiskScore -ge 0 -and
+
+    $forecastResult.metrics.
+      proactiveRiskScore -le 100
+  ) `
+  "Forecast risk score stays within 0-100"
+
+Assert-True `
+  (
+    $forecastResult.
+      automaticExecutionBlocked -eq
+    $true
+  ) `
+  "Forecast cannot execute operational action automatically"
+
+Assert-True `
+  (
+    @(
+      $forecastResult.toolCalls |
+      Where-Object {
+        $_.status -ne
+        "SUCCEEDED"
+      }
+    ).Count -eq 0
+  ) `
+  "Forecast tool calls succeed"
+Write-Host "5. Sense agent"
 
 $testId =
   [guid]::NewGuid().
@@ -219,7 +290,7 @@ Assert-True `
   "Sense tool calls succeed"
 
 Write-Host ""
-Write-Host "5. Impact agent"
+Write-Host "6. Impact agent"
 
 $impactPayload = @{
   agentRunId =
@@ -295,7 +366,7 @@ Assert-True `
   "Impact output remains human supervised"
 
 Write-Host ""
-Write-Host "6. Route agent"
+Write-Host "7. Route agent"
 
 $routePayload = @{
   agentRunId =
@@ -371,7 +442,7 @@ Assert-True `
   "Route change requires human approval"
 
 Write-Host ""
-Write-Host "7. Command agent"
+Write-Host "8. Command agent"
 
 $commandPayload = @{
   agentRunId =

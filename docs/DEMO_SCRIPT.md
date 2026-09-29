@@ -302,3 +302,16 @@ A production version can integrate:
 ## Final jury takeaway
 
 > NERVE turns verified local evidence into explainable, supervised preparedness decisions so communities can preserve access before a road failure becomes a humanitarian emergency.
+## Proactive forecast demonstration
+
+1. Open the command overview dashboard.
+2. Point to the **Proactive Weather Intelligence** card.
+3. Explain that no field report was required to generate the screening result.
+4. Show the previous 72-hour rainfall and next 24/72-hour forecast.
+5. Show the explainable risk score and corridor status.
+6. Select refresh to retrieve the latest Open-Meteo forecast.
+7. Point to **Human approval retained**.
+
+Suggested narration:
+
+> NERVE does not wait for a road failure or citizen report. It reads real weather-model data, combines recent and forecast rainfall with corridor context, and generates an explainable early screening status. The platform can recommend investigation and preparation, but it cannot close a road or reroute a delivery without accountable human approval.
