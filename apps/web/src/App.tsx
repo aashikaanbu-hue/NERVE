@@ -135,6 +135,20 @@ function Brand() {
 }
 
 function CommandMap() {
+  const [mapReady, setMapReady] =
+    useState(false);
+
+  useEffect(() => {
+    const timer =
+      window.setTimeout(() => {
+        setMapReady(true);
+      }, 900);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <div
       className="command-card command-card-v8"
@@ -155,12 +169,15 @@ function CommandMap() {
       </div>
 
       <div className="map real-map">
-        <iframe
-          title="East Khasi Hills live accessibility map"
-          src="https://www.openstreetmap.org/export/embed.html?bbox=91.62%2C25.19%2C91.98%2C25.65&layer=mapnik"
-          loading="eager"
-          tabIndex={-1}
-        />
+        {mapReady && (
+  <iframe
+    title="East Khasi Hills live accessibility map"
+    src="https://www.openstreetmap.org/export/embed.html?bbox=91.62%2C25.19%2C91.98%2C25.65&layer=mapnik"
+    loading="eager"
+    tabIndex={-1}
+  />
+)}
+
 
         <div className="map-tone" aria-hidden="true" />
         <div className="map-vignette" aria-hidden="true" />

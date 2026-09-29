@@ -4265,13 +4265,16 @@ a {
 }
 
 .command-card-v8 .real-map > iframe {
-  inset: -2%;
-  width: 104%;
-  height: 104%;
-  opacity: 0.98;
-  filter: saturate(0.78) brightness(0.78) contrast(1.12);
-  transform: scale(1.015);
-  animation: nerveMapBreath 18s ease-in-out infinite alternate;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  opacity: 1;
+  filter: none;
+  transform: none;
+  animation: none;
 }
 
 .command-card-v8 .map-tone {
