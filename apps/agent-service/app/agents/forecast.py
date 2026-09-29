@@ -339,6 +339,12 @@ def analyse_corridor_forecast(
         "precipitation_unit": "mm",
     }
 
+    weather_source = (
+        "Open-Meteo Weather Forecast API"
+    )
+    fetch_status = "SUCCEEDED"
+    fetch_error: str | None = None
+
     try:
         with httpx.Client(
             timeout=15,
@@ -352,9 +358,53 @@ def analyse_corridor_forecast(
             weather_data = response.json()
 
     except httpx.HTTPError as error:
-        raise RuntimeError(
-            "Open-Meteo forecast data could not be retrieved."
-        ) from error
+        fetch_status = "FAILED"
+        fetch_error = str(error)
+        weather_source = (
+            "Terrain-only fallback screening "
+            "(live weather temporarily unavailable)"
+        )
+
+        fallback_start = datetime.now(
+            LOCAL_TIMEZONE,
+        ).replace(
+            minute=0,
+            second=0,
+            microsecond=0,
+            tzinfo=None,
+        ) - timedelta(hours=72)
+
+        fallback_times = [
+            (
+                fallback_start +
+                timedelta(hours=index)
+            ).isoformat(
+                timespec="minutes",
+            )
+            for index in range(145)
+        ]
+
+        weather_data = {
+            "latitude": payload.latitude,
+            "longitude": payload.longitude,
+            "elevation": None,
+            "timezone": "Asia/Kolkata",
+            "hourly": {
+                "time": fallback_times,
+                "precipitation": [
+                    0.0
+                    for _ in fallback_times
+                ],
+                "precipitation_probability": [
+                    0.0
+                    for _ in fallback_times
+                ],
+                "soil_moisture_0_to_1cm": [
+                    None
+                    for _ in fallback_times
+                ],
+            },
+        }
 
     if not isinstance(
         weather_data,
@@ -582,9 +632,13 @@ def analyse_corridor_forecast(
     tool_calls = [
         ForecastToolCall(
             toolName="fetch_open_meteo_forecast",
-            status="SUCCEEDED",
+            status=fetch_status,
             result={
                 "provider": "Open-Meteo",
+                                "fallbackUsed": (
+                    fetch_status == "FAILED"
+                ),
+                "error": fetch_error,
                 "latitude": weather_data.get(
                     "latitude",
                 ),
@@ -624,9 +678,7 @@ def analyse_corridor_forecast(
         corridorName=payload.corridorName,
         status="COMPLETED",
         assessmentStatus=level,
-        source=(
-            "Open-Meteo Weather Forecast API"
-        ),
+        source=weather_source,
         methodology=(
             "weather-terrain-screening-v1"
         ),
